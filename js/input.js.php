@@ -5,6 +5,11 @@
 
         render_leaflet_map(uid);
 
+        function display_googlemap_url(id,lat,lon) {
+            gm_url = 'http://maps.google.com/maps?t=m&q=loc:' + lat + '+' + lon;
+            $('#acf-map_location').append('<div class="field" id="gm_url-marker-' + id + '"><p class="label"><label for="gm_url' + id + '">Google Map URL</label></p><input id="gm_url' + id + '" type="text" value="' + gm_url + '"></div>');
+        }
+
         function render_leaflet_map(uid) {
             // Get the hidden input-field
             var field = $('#field_' + uid);
@@ -63,6 +68,12 @@
                     index = add_marker(marker);
                     marker.id = index;
                     newMarkers['m_' + index] = marker;
+
+                    // generate & expose Google Maps URL 
+                    var marklat = marker.geometry.coordinates[1],
+                        marklon = marker.geometry.coordinates[0];
+                    display_googlemap_url(marker.id,marklat,marklon);
+                    
                 });
 
                 window.map_settings[uid].markers = newMarkers;
@@ -89,6 +100,11 @@
                     index = add_marker( marker );
                     window.map_settings[uid].markers['m_' + index] = marker;
                     window.map_settings[uid].markers['m_' + index].id = index;
+
+                    // generate & expose Google Maps URL 
+                    var marklat = marker.geometry.coordinates[1],
+                        marklon = marker.geometry.coordinates[0];
+                    display_googlemap_url(marker.id,marklat,marklon);
                 }
 
                 update_field(uid);
@@ -109,7 +125,6 @@
             });
 
             function add_marker( marker ) {
-
                 var geoJsonLayer = L.geoJson(marker, {
                     onEachFeature:function( feature, layer ){
                         layer.options.draggable = true;
@@ -120,6 +135,10 @@
                             if( active_tool.hasClass('tool-remove') ) {
                                 delete window.map_settings[uid].markers['m_' + layer._leaflet_id];
                                 window.maps[uid].removeLayer(layer);
+
+                                // remove the Google Map URL field
+                                gm_url_field_id = '#gm_url-marker-' + marker.id;
+                                $(gm_url_field_id).remove();
                             }
                             else if( active_tool.hasClass('tool-tag') ) {
                                 if( typeof window.map_settings[uid].markers['m_' + layer._leaflet_id].properties.popupContent == 'undefined' ) {
@@ -144,6 +163,7 @@
                             }
 
                             update_field(uid);
+
                         }).on('dragend', function(e) {
                             newLatLng = e.target.getLatLng();
                             window.map_settings[uid].markers['m_' + e.target._leaflet_id].geometry.coordinates = [newLatLng.lng, newLatLng.lat];
@@ -152,6 +172,7 @@
                             update_field(uid);
                         });
                     }
+
                 }).addTo(window.maps[uid]);
                 
                 return geoJsonLayer._layers[geoJsonLayer._leaflet_id-1]._leaflet_id;
